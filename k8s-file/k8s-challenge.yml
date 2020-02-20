@@ -1,0 +1,171 @@
+## create service
+# kubectl apply -n vote -f vote-service.yml
+
+apiVersion: v1
+kind: Service
+metadata:
+  name: vote-service
+spec:
+  selector:
+    app: vote-deployment
+  type: NodePort
+  ports:
+    - name: http
+      protocol: TCP
+      port: 5000
+      targetPort: 80
+      nodePort: 31000
+---
+## create deployment
+# kubectl apply -n vote -f vote-deployment.yml
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: vote-deployment
+  labels:
+    app: vote-deployment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: vote-deployment
+  template:
+    metadata:
+      labels:
+        app: vote-deployment
+    spec:
+      containers:
+      - name: vote-deployment
+        image: kodekloud/examplevotingapp_vote:before
+---
+## redis deployment ##
+# 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: redis-deployment
+spec:
+  selector:
+    matchLabels:
+      app: redis-deployment
+  template:
+    metadata:
+      labels:
+        app: redis-deployment
+    spec:
+      containers:
+      - name: redis-deployment
+        image: redis:alpine
+        volumeMounts:
+        - name: redis-data
+          mountPath: /data
+      volumes:
+        - name: redis-data
+          emptyDir: {}
+---
+## redis service ##
+# 
+apiVersion: v1
+kind: Service
+metadata:
+  name: redis
+spec:
+  selector:
+    app: redis-deployment
+  type: ClusterIP
+  ports:
+  - port: 6379
+    targetPort: 6379
+---
+## worker deployment ##
+# 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: worker
+spec:
+  selector:
+    matchLabels:
+      app: worker
+  template:
+    metadata:
+      labels:
+        app: worker
+    spec:
+      containers:
+      - name: myapp
+        image: kodekloud/examplevotingapp_worker
+---
+## db deployment ##
+# 
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: db-deployment
+spec:
+  selector:
+    matchLabels:
+      app: db-deployment
+  template:
+    metadata:
+      labels:
+        app: db-deployment
+    spec:
+      containers:
+      - name: db-deployment
+        image: postgres:9.4
+        volumeMounts:
+        - name: db-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+        - name: db-data
+          emptyDir: {}
+---
+## db service ##
+#
+apiVersion: v1
+kind: Service
+metadata:
+  name: db
+spec:
+  selector:
+    app: db-deployment
+  ports:
+  - port: 5432
+    targetPort: 5432
+---
+## result deployment ##
+#
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: result-deployment
+spec:
+  selector:
+    matchLabels:
+      app: result-deployment
+  template:
+    metadata:
+      labels:
+        app: result-deployment
+    spec:
+      containers:
+      - name: result-deployment
+        image: kodekloud/examplevotingapp_result:before
+---
+## result-service ##
+# 
+apiVersion: v1
+kind: Service
+metadata:
+  name: result-service
+spec:
+  selector:
+    app: result-deployment
+  type: NodePort
+  ports:
+  - port: 5001
+    targetPort: 80
+    nodePort: 31001
+
